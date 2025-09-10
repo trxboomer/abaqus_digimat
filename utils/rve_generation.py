@@ -1,0 +1,56 @@
+import os
+import math
+from random import randint
+from loguru import logger
+
+digimat_path = r"C:\MSC.Software\Digimat\2024.1\DigimatFE\exec\DigimatFE.bat"
+
+
+def generate_daf(
+    new_daf_name: str,
+    num_samples: int,
+    template_directory: str,
+    output_dir: str,
+    template_file_name: str = "Template",
+):
+
+    with open(f"{template_directory}/{template_file_name}.daf", "r") as in_file:
+        template_daf_lines = in_file.readlines()
+
+    fill_len = int(math.log10(num_samples)) + 1
+    for i in range(num_samples):
+        state_number = str(i).zfill(fill_len)
+        name = f"{new_daf_name}_{state_number}"
+        with open(f"{output_dir}/{name}.daf", "w") as out_file:
+            for line in template_daf_lines:
+                if line == "name = Template\n":
+                    line = f"name = {name}\n"
+                if line == "random_seed = 1\n":
+                    line = f"random_seed = {str(randint(1**10, 9**10))}\n"
+                out_file.write(line)
+
+
+def batched_run(daf_file_path: str, output_path: str, log_path: str):
+
+    filenames = [f for f in os.listdir(daf_file_path) if f.endswith(".daf")]
+    num_jobs = len(filenames)
+    for idx, files in enumerate(filenames):
+        text = f"{digimat_path} -runFEWorkflow input={daf_file_path}\\{files} workingDir={output_path}"
+        os.system(text)
+        logger.success(f"Completed {idx}/{num_jobs} jobs")
+
+
+if __name__ == "__main__":
+    generate_daf(
+        template_file_name="Template",
+        new_daf_name="test",
+        num_samples=5,
+        template_directory=r"C:\Users\harryhz\Documents\digimat_scripts\digimat\Template",
+        output_dir=r"C:\Users\harryhz\Documents\digimat_scripts\digimat\Template\test",
+    )
+
+    batched_run(
+        daf_file_path=r"C:\Users\harryhz\Documents\digimat_scripts\digimat\Template\test",
+        output_path=r"D:\digimat_test",
+        log_path="",
+    )
